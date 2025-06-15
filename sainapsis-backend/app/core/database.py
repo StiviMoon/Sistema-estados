@@ -35,6 +35,7 @@ class Database:
                 max_size=10,
                 command_timeout=60,
                 server_settings={"jit": "off"},
+                statement_cache_size=0  
             )
             print(f"✅ Database connected to {self.host}")
         except Exception as e:
