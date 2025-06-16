@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,8 +23,45 @@ import { toast } from 'sonner'
 interface EventButtonsProps {
   orderId: string
   currentState: OrderState
-  allowedEvents: string[]
+  allowedEvents: EventType[]
   onEventProcessed: () => void
+}
+
+interface ConfirmationData {
+  reason: string
+  notes: string
+}
+
+interface EventStyling {
+  gradient: string
+  border: string
+  icon: string
+  iconBg: string
+  accent: string
+}
+
+interface ConfirmationStyle {
+  titleColor: string
+  descColor: string
+  bgColor: string
+  borderColor: string
+}
+
+// Tipos para la API response
+interface ProcessEventResponse {
+  data: {
+    old_state: string
+    new_state: string
+  }
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      detail?: string
+    }
+  }
+  message?: string
 }
 
 export function EventButtons({ 
@@ -34,15 +70,15 @@ export function EventButtons({
   allowedEvents, 
   onEventProcessed 
 }: EventButtonsProps) {
-  const [processing, setProcessing] = useState<string | null>(null)
+  const [processing, setProcessing] = useState<EventType | null>(null)
   const [confirmingEvent, setConfirmingEvent] = useState<EventType | null>(null)
-  const [confirmationData, setConfirmationData] = useState({
+  const [confirmationData, setConfirmationData] = useState<ConfirmationData>({
     reason: '',
     notes: ''
   })
-  const processingRef = useRef<string | null>(null)
+  const processingRef = useRef<EventType | null>(null)
 
-  const handleProcessEvent = useCallback(async (eventType: string, additionalMetadata = {}) => {
+  const handleProcessEvent = useCallback(async (eventType: EventType, additionalMetadata: Record<string, string | number | boolean> = {}) => {
     if (processingRef.current) {
       console.log('Already processing an event, skipping...')
       return
@@ -55,13 +91,13 @@ export function EventButtons({
       console.log(`Processing event: ${eventType} for order: ${orderId}`)
       
       const response = await orderApi.processEvent(orderId, {
-        event_type: eventType as EventType,
+        event_type: eventType,
         metadata: {
           processed_via: 'web_interface',
           processed_at: new Date().toISOString(),
           ...additionalMetadata
         }
-      })
+      }) as ProcessEventResponse
 
       console.log('Event processed successfully:', response.data)
       
@@ -77,14 +113,16 @@ export function EventButtons({
         onEventProcessed()
       }, 500)
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error processing event:', error)
       
+      const apiError = error as ApiError
       let errorMessage = 'An unexpected error occurred'
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail
-      } else if (error.message) {
-        errorMessage = error.message
+      
+      if (apiError.response?.data?.detail) {
+        errorMessage = apiError.response.data.detail
+      } else if (apiError.message) {
+        errorMessage = apiError.message
       }
       
       toast.error('Failed to process event', {
@@ -98,8 +136,8 @@ export function EventButtons({
     }
   }, [orderId, onEventProcessed])
 
-  const getEventStyling = (event: string) => {
-    const eventConfig = EVENT_CONFIG[event as EventType]
+  const getEventStyling = (event: EventType): EventStyling => {
+    const eventConfig = EVENT_CONFIG[event]
     
     if (!eventConfig) {
       return {
@@ -148,16 +186,16 @@ export function EventButtons({
     }
   }
 
-  const handleEventClick = useCallback((event: string) => {
+  const handleEventClick = useCallback((event: EventType) => {
     if (processingRef.current) {
       console.log('Already processing, ignoring click')
       return
     }
 
-    const eventConfig = EVENT_CONFIG[event as EventType]
+    const eventConfig = EVENT_CONFIG[event]
     
     if (eventConfig?.requiresConfirmation) {
-      setConfirmingEvent(event as EventType)
+      setConfirmingEvent(event)
     } else {
       handleProcessEvent(event)
     }
@@ -165,7 +203,7 @@ export function EventButtons({
 
   const handleConfirmEvent = () => {
     if (confirmingEvent) {
-      const metadata: Record<string, any> = {}
+      const metadata: Record<string, string> = {}
       
       if (confirmationData.reason.trim()) {
         metadata.reason = confirmationData.reason.trim()
@@ -193,7 +231,7 @@ export function EventButtons({
     return <AlertTriangle className="h-6 w-6 text-orange-600" />
   }
 
-  const getConfirmationStyle = (eventType: EventType) => {
+  const getConfirmationStyle = (eventType: EventType): ConfirmationStyle => {
     const eventConfig = EVENT_CONFIG[eventType]
     if (eventConfig?.variant === 'destructive') {
       return {
@@ -255,7 +293,7 @@ export function EventButtons({
             {allowedEvents.map((event, index) => {
               const isProcessing = processing === event
               const styling = getEventStyling(event)
-              const eventConfig = EVENT_CONFIG[event as EventType]
+              const eventConfig = EVENT_CONFIG[event]
               
               const eventLabel = eventConfig?.label || event.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
               const eventDescription = eventConfig?.description || 'Process this event to continue the workflow'
@@ -267,35 +305,62 @@ export function EventButtons({
                   onClick={() => handleEventClick(event)}
                   disabled={processing !== null}
                   className={`
-                    group relative w-full p-5 text-left rounded-xl transition-all duration-200
+                    group relative w-full p-5 text-left rounded-xl transition-all duration-300 transform
                     ${processing !== null
                       ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:shadow-md cursor-pointer'
+                      : 'hover:shadow-lg hover:scale-[1.02] cursor-pointer'
                     }
                     ${isProcessing 
-                      ? `bg-gradient-to-br ${styling.gradient} border-2 ${styling.border.replace('hover:', '')} shadow-md` 
+                      ? `bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-300 shadow-lg ring-2 ring-blue-400 ring-opacity-50` 
                       : `bg-gradient-to-br ${styling.gradient} border ${styling.border}`
                     }
                   `}
                 >
+                  {/* Overlay de procesamiento mejorado */}
                   {isProcessing && (
-                    <div className="absolute inset-0 bg-white bg-opacity-50 rounded-xl flex items-center justify-center z-10">
-                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl flex items-center justify-center z-10 backdrop-blur-sm">
+                      <div className="flex items-center gap-3 text-blue-700 bg-white/90 px-4 py-2 rounded-full shadow-lg border border-blue-200">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                        <span className="font-semibold text-sm">Processing...</span>
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
+                          <div 
+                            className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" 
+                            style={{animationDelay: '0.2s'}}
+                          ></div>
+                          <div 
+                            className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse" 
+                            style={{animationDelay: '0.4s'}}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   )}
                   
-                  <div className={`absolute top-0 left-0 w-1 h-full ${styling.accent} rounded-l-xl`}></div>
+                  {/* Indicador de borde con animación cuando está procesando */}
+                  <div className={`absolute top-0 left-0 w-1 h-full rounded-l-xl transition-all duration-300 ${
+                    isProcessing 
+                      ? 'bg-gradient-to-b from-blue-500 to-indigo-500 w-2 shadow-lg' 
+                      : styling.accent
+                  }`}></div>
                   
                   <div className="flex items-start gap-4">
-                    <div className={`flex-shrink-0 w-12 h-12 ${styling.iconBg} rounded-xl flex items-center justify-center shadow-sm`}>
-                      <span className="text-lg">{styling.icon}</span>
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 ${
+                      isProcessing 
+                        ? 'bg-blue-100 ring-2 ring-blue-300 ring-opacity-50 scale-110' 
+                        : styling.iconBg
+                    }`}>
+                      <span className={`text-lg transition-all duration-300 ${
+                        isProcessing ? 'animate-pulse' : ''
+                      }`}>
+                        {isProcessing ? '⚡' : styling.icon}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="font-semibold text-gray-900">
+                        <div className={`font-semibold transition-colors duration-300 ${
+                          isProcessing ? 'text-blue-900' : 'text-gray-900'
+                        }`}>
                           {eventLabel}
                         </div>
                         {requiresConfirmation && (
@@ -303,8 +368,15 @@ export function EventButtons({
                             Confirm
                           </span>
                         )}
+                        {isProcessing && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium animate-pulse">
+                            Active
+                          </span>
+                        )}
                       </div>
-                      <div className="text-sm text-gray-600 leading-relaxed">
+                      <div className={`text-sm leading-relaxed transition-colors duration-300 ${
+                        isProcessing ? 'text-blue-700' : 'text-gray-600'
+                      }`}>
                         {eventDescription}
                       </div>
                     </div>
@@ -324,7 +396,7 @@ export function EventButtons({
                 <p className="font-medium text-blue-900 mb-1">Order State Machine</p>
                 <p className="text-blue-800 leading-relaxed">
                   Each action transitions the order according to your business rules. 
-                  Actions marked "Confirm" require confirmation before processing.
+                  Actions marked &quot;Confirm&quot; require confirmation before processing.
                 </p>
               </div>
             </div>

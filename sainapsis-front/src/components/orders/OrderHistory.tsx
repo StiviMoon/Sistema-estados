@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { OrderEvent, OrderState } from '@/lib/types'
@@ -40,6 +39,23 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
       newExpanded.add(index)
     }
     setExpandedEvents(newExpanded)
+  }
+
+  // Función para determinar si un evento es el actual
+  const isCurrentEvent = (event: OrderEvent, index: number): boolean => {
+    // Si el evento tiene el estado actual como new_state, es el evento actual
+    if (event.new_state === currentState) {
+      return true
+    }
+    
+    // Alternativa: si es el primer evento en la lista ordenada cronológicamente
+    // y corresponde al estado actual
+    const sortedEvents = [...events].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const latestEvent = sortedEvents[0]
+    
+    return event === latestEvent && event.new_state === currentState
   }
 
   // Función para procesar metadata de forma segura
@@ -232,14 +248,19 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
               const newStateConfig = ORDER_STATE_CONFIG[event.new_state]
               const isExpanded = expandedEvents.has(index)
               
+              // Usar la nueva función para determinar si es el evento actual
+              const isCurrent = isCurrentEvent(event, index)
+              
               // Procesar metadata de forma segura
               const processedMetadata = processMetadata(event.metadata)
               const hasMetadata = Object.keys(processedMetadata).length > 0
-              const isLatest = index === 0
               
               // Debug: log para ver el evento completo
               console.log(`Event ${index}:`, {
                 event_type: event.event_type,
+                new_state: event.new_state,
+                currentState,
+                isCurrent,
                 metadata: event.metadata,
                 processedMetadata,
                 hasMetadata
@@ -250,12 +271,12 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
                   {/* Timeline Dot */}
                   <div className={`
                     flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center
-                    ${isLatest 
+                    ${isCurrent 
                       ? 'bg-blue-600 text-white shadow-lg ring-4 ring-blue-100' 
                       : 'bg-white border-2 border-gray-200 text-gray-600'
                     }
                   `}>
-                    {isLatest ? (
+                    {isCurrent ? (
                       <Activity className="h-5 w-5" />
                     ) : (
                       <CheckCircle className="h-4 w-4" />
@@ -266,7 +287,7 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
                   <div className="flex-1 min-w-0">
                     <div className={`
                       bg-white border rounded-lg p-4 shadow-sm
-                      ${isLatest ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}
+                      ${isCurrent ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}
                     `}>
                       {/* Event Header */}
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -275,9 +296,9 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
                             <h4 className="font-semibold text-sm">
                               {eventConfig?.label || event.event_type}
                             </h4>
-                            {isLatest && (
+                            {isCurrent && (
                               <Badge variant="default" className="text-xs bg-blue-600">
-                                Latest
+                                Current
                               </Badge>
                             )}
                           </div>
@@ -315,8 +336,6 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
                           </Badge>
                         </div>
                       )}
-
-
 
                       {/* Metadata Section */}
                       {hasMetadata && (
