@@ -10,7 +10,7 @@ import { OrderStateBadge } from '@/components/orders/OrderStateBadge'
 import { EventButtons } from '@/components/orders/EventButtons'
 import { OrderHistory } from '@/components/orders/OrderHistory'
 import { orderApi } from '@/lib/api'
-import { Order, OrderEvent } from '@/lib/types'
+import { Order, OrderEvent, EventType } from '@/lib/types'
 import { ORDER_STATE_CONFIG } from '@/lib/constants'
 import { 
   ArrowLeft, 
@@ -22,7 +22,6 @@ import {
   Mail,
   FileText,
   Clock,
-  CheckCircle,
   AlertTriangle
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -310,7 +309,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           <EventButtons
             orderId={order.id}
             currentState={order.state}
-            allowedEvents={allowedEvents}
+            allowedEvents={allowedEvents as EventType[]}
             onEventProcessed={handleEventProcessed}
           />
         </div>

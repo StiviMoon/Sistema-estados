@@ -7,8 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OrderCard } from '@/components/orders/OrderCard'
 import { orderApi } from '@/lib/api'
-import { Order, OrderState } from '@/lib/types'
-import { ORDER_STATE_CONFIG } from '@/lib/constants'
+import { Order } from '@/lib/types'
 import { 
   Plus, 
   RefreshCw, 
@@ -21,7 +20,13 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import Link from 'next/link'
+interface DashboardStats {
+  total: number
+  totalValue: number
+  pending: number
+  processing: number
+  completed: number
+}
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -29,7 +34,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (): Promise<void> => {
     try {
       setLoading(true)
       setError(null)
@@ -49,25 +54,39 @@ export default function Dashboard() {
     fetchOrders()
   }, [])
 
-  // Calculate stats
-  const stats = useMemo(() => {
+  // Calculate stats with proper typing
+  const stats = useMemo((): DashboardStats => {
     const totalValue = orders.reduce((sum, order) => sum + order.amount, 0)
     
     return {
       total: orders.length,
       totalValue,
       pending: orders.filter(o => o.state === 'pending').length,
-      processing: orders.filter(o => ['confirmed', 'processing', 'shipped'].includes(o.state)).length,
+      processing: orders.filter(o => 
+        ['confirmed', 'processing', 'shipped'].includes(o.state)
+      ).length,
       completed: orders.filter(o => o.state === 'delivered').length,
     }
   }, [orders])
 
-  // Recent orders
-  const recentOrders = useMemo(() => {
+  // Recent orders with proper typing
+  const recentOrders = useMemo((): Order[] => {
     return [...orders]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 6)
   }, [orders])
+
+  const handleCreateOrder = (): void => {
+    router.push('/orders/create')
+  }
+
+  const handleViewOrder = (id: string): void => {
+    router.push(`/orders/${id}`)
+  }
+
+  const handleViewAllOrders = (): void => {
+    router.push('/orders')
+  }
 
   if (error && !loading) {
     return (
@@ -91,7 +110,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Welcome back!</h1>
           <p className="text-muted-foreground">
-            Here's what's happening with your orders today.
+            Heres whats happening with your orders today.
           </p>
         </div>
         <div className="flex gap-3">
@@ -99,7 +118,7 @@ export default function Dashboard() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => router.push('/orders/create')} size="sm">
+          <Button onClick={handleCreateOrder} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Create Order</span>
             <span className="sm:hidden">Create</span>
@@ -190,17 +209,15 @@ export default function Dashboard() {
                 Your latest orders
               </CardDescription>
             </div>
-            <Link href="/orders">
-              <Button variant="outline" size="sm">
-                View All <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={handleViewAllOrders}>
+              View All <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
+              {Array.from({ length: 6 }, (_, i) => (
                 <Card key={i}>
                   <CardContent className="p-6">
                     <Skeleton className="h-32 w-full" />
@@ -214,7 +231,7 @@ export default function Dashboard() {
                 <OrderCard
                   key={order.id}
                   order={order}
-                  onViewDetails={(id) => router.push(`/orders/${id}`)}
+                  onViewDetails={handleViewOrder}
                 />
               ))}
             </div>
@@ -223,7 +240,7 @@ export default function Dashboard() {
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
               <p className="text-muted-foreground mb-4">Get started by creating your first order</p>
-              <Button onClick={() => router.push('/orders/create')}>
+              <Button onClick={handleCreateOrder}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create your first order
               </Button>
