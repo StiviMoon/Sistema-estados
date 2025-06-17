@@ -15,10 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Plus, 
   Search, 
-  Filter, 
-  MoreHorizontal,
   Eye,
-  Calendar,
   DollarSign,
   Package,
   RefreshCw,
@@ -27,14 +24,20 @@ import {
 import { format, formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 
+// Tipo para los campos que se pueden ordenar
+type SortField = 'created_at' | 'amount' | 'updated_at'
+
+// Tipo para la dirección de ordenamiento
+type SortDirection = 'asc' | 'desc'
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterState, setFilterState] = useState<OrderState | 'all'>('all')
-  const [sortField, setSortField] = useState<'created_at' | 'amount' | 'updated_at'>('created_at')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [sortField, setSortField] = useState<SortField>('created_at')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(12)
 
@@ -46,8 +49,16 @@ export default function OrdersPage() {
       const response = await orderApi.getAll()
       setOrders(response.data)
       toast.success(`Loaded ${response.data.length} orders`)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch orders'
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to fetch orders'
+      
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as { response?: { data?: { detail?: string } }; message?: string }
+        errorMessage = apiError.response?.data?.detail || apiError.message || errorMessage
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+      
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -78,13 +89,13 @@ export default function OrdersPage() {
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: string | number = a[sortField]
+      let bValue: string | number = b[sortField]
 
       // Handle date fields
       if (sortField === 'created_at' || sortField === 'updated_at') {
-        aValue = new Date(aValue).getTime()
-        bValue = new Date(bValue).getTime()
+        aValue = new Date(aValue as string).getTime()
+        bValue = new Date(bValue as string).getTime()
       }
 
       if (sortDirection === 'asc') {
@@ -103,7 +114,7 @@ export default function OrdersPage() {
   const paginatedOrders = filteredAndSortedOrders.slice(startIndex, startIndex + itemsPerPage)
 
   // Handle sorting
-  const handleSort = (field: typeof sortField) => {
+  const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {

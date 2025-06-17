@@ -30,13 +30,20 @@ export type EventType =
   | 'itemReceivedBack'
   | 'refundProcessed'
 
+// Tipo para metadata que puede ser un objeto o un string JSON serializado
+export type OrderMetadata = 
+  | Record<string, string | number | boolean | null | undefined>
+  | string
+  | null
+  | undefined
+
 // Modelos de datos
 export interface Order {
   id: string
   product_ids: string[]
   amount: number
   state: OrderState
-  metadata: Record<string, any>
+  metadata: OrderMetadata
   created_at: string
   updated_at: string
 }
@@ -44,12 +51,12 @@ export interface Order {
 export interface CreateOrderRequest {
   product_ids: string[]
   amount: number
-  metadata?: Record<string, any>
+  metadata?: OrderMetadata
 }
 
 export interface ProcessEventRequest {
   event_type: EventType
-  metadata?: Record<string, any>
+  metadata?: OrderMetadata
 }
 
 export interface EventResponse {
@@ -70,6 +77,6 @@ export interface OrderEvent {
   event_type: string
   old_state: OrderState | null
   new_state: OrderState
-  metadata: Record<string, any>
+  metadata: OrderMetadata
   created_at: string
 }

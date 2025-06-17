@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { orderApi } from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { Order } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { 
   Home,
@@ -19,18 +19,17 @@ import {
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
-  initialOrders?: any[]
+  initialOrders?: Order[]
 }
 
 export function Sidebar({ initialOrders = [] }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [orders, setOrders] = useState(initialOrders)
+  const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<string>('')
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
 
   // Fix hydration issues
   useEffect(() => {
@@ -63,8 +62,8 @@ export function Sidebar({ initialOrders = [] }: SidebarProps) {
     setIsOpen(false)
   }, [pathname])
 
-  // Auto-refresh orders data
-  const refreshOrders = async (showLoading = true) => {
+  // Auto-refresh orders data - useCallback para evitar warnings de dependencias
+  const refreshOrders = useCallback(async (showLoading = true) => {
     if (!mounted) return
     
     try {
@@ -80,13 +79,13 @@ export function Sidebar({ initialOrders = [] }: SidebarProps) {
     } finally {
       if (showLoading) setIsRefreshing(false)
     }
-  }
+  }, [mounted])
 
   // Refresh on initial load and when pathname changes
   useEffect(() => {
     if (!mounted) return
     refreshOrders(false)
-  }, [pathname, mounted])
+  }, [pathname, mounted, refreshOrders])
 
   // Auto-refresh every 30 seconds when on orders pages
   useEffect(() => {
@@ -99,7 +98,7 @@ export function Sidebar({ initialOrders = [] }: SidebarProps) {
 
       return () => clearInterval(interval)
     }
-  }, [pathname, mounted])
+  }, [pathname, mounted, refreshOrders])
 
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {

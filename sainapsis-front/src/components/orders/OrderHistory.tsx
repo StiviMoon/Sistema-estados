@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { OrderEvent, OrderState } from '@/lib/types'
+import { OrderEvent, OrderState, OrderMetadata } from '@/lib/types'
 import { ORDER_STATE_CONFIG, EVENT_CONFIG } from '@/lib/constants'
 import { 
   Clock, 
@@ -28,7 +28,10 @@ interface OrderHistoryProps {
   currentState: OrderState
 }
 
-export function OrderHistory({ orderId, events, currentState }: OrderHistoryProps) {
+// Tipo para metadata procesada - usando unknown para máxima flexibilidad
+type ProcessedMetadata = Record<string, unknown>
+
+export function OrderHistory({ events, currentState }: OrderHistoryProps) {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set())
 
   const toggleEventExpansion = (index: number) => {
@@ -42,7 +45,7 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
   }
 
   // Función para determinar si un evento es el actual
-  const isCurrentEvent = (event: OrderEvent, index: number): boolean => {
+  const isCurrentEvent = (event: OrderEvent): boolean => {
     // Si el evento tiene el estado actual como new_state, es el evento actual
     if (event.new_state === currentState) {
       return true
@@ -59,7 +62,7 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
   }
 
   // Función para procesar metadata de forma segura
-  const processMetadata = (metadata: any): Record<string, any> => {
+  const processMetadata = (metadata: OrderMetadata): ProcessedMetadata => {
     // Si es null o undefined, retornar objeto vacío
     if (metadata === null || metadata === undefined) {
       return {}
@@ -76,12 +79,12 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
         const parsed = JSON.parse(metadata)
         // Si el parsing fue exitoso y es un objeto, devolverlo
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          return parsed
+          return parsed as ProcessedMetadata
         }
         // Si es un array, convertirlo a objeto indexado
         if (Array.isArray(parsed)) {
-          return parsed.reduce((acc, item, index) => {
-            acc[`item_${index}`] = item
+          return parsed.reduce((acc: ProcessedMetadata, item: unknown, idx: number) => {
+            acc[`item_${idx}`] = item
             return acc
           }, {})
         }
@@ -96,22 +99,22 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
 
     // Si es un array, convertirlo a objeto indexado
     if (Array.isArray(metadata)) {
-      return metadata.reduce((acc, item, index) => {
-        acc[`item_${index}`] = item
+      return metadata.reduce((acc: ProcessedMetadata, item: unknown, idx: number) => {
+        acc[`item_${idx}`] = item
         return acc
       }, {})
     }
 
     // Si ya es un objeto, devolverlo tal como está
     if (typeof metadata === 'object') {
-      return metadata
+      return metadata as ProcessedMetadata
     }
 
     // Para cualquier otro tipo (number, boolean, etc.), crear un objeto
     return { value: metadata }
   }
 
-  const renderMetadataValue = (key: string, value: any): React.ReactNode => {
+  const renderMetadataValue = (key: string, value: unknown): React.ReactNode => {
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground italic">null</span>
     }
@@ -167,7 +170,7 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
     if (Array.isArray(value)) {
       return (
         <div className="flex flex-wrap gap-1">
-          {value.map((item, idx) => (
+          {value.map((item: unknown, idx: number) => (
             <Badge key={idx} variant="outline" className="text-xs">
               {String(item)}
             </Badge>
@@ -249,7 +252,7 @@ export function OrderHistory({ orderId, events, currentState }: OrderHistoryProp
               const isExpanded = expandedEvents.has(index)
               
               // Usar la nueva función para determinar si es el evento actual
-              const isCurrent = isCurrentEvent(event, index)
+              const isCurrent = isCurrentEvent(event)
               
               // Procesar metadata de forma segura
               const processedMetadata = processMetadata(event.metadata)

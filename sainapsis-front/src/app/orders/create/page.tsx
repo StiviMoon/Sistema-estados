@@ -101,10 +101,20 @@ export default function CreateOrderPage() {
       
       router.push(`/orders/${response.data.id}`)
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating order:', error)
+      
+      let errorMessage = 'An unexpected error occurred'
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { data?: { detail?: string } } }
+        errorMessage = apiError.response?.data?.detail || errorMessage
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
       toast.error('Failed to create order', {
-        description: error.response?.data?.detail || 'An unexpected error occurred'
+        description: errorMessage
       })
     } finally {
       setIsSubmitting(false)
@@ -325,7 +335,7 @@ export default function CreateOrderPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Next Steps:</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Order will be created in "Pending" state</li>
+                    <li>• Order will be created in Pending state</li>
                     <li>• You can process events to move it through workflow</li>
                     <li>• View order details and history after creation</li>
                   </ul>

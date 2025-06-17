@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+
 interface DashboardStats {
   total: number
   totalValue: number
@@ -40,8 +41,16 @@ export default function Dashboard() {
       setError(null)
       const response = await orderApi.getAll()
       setOrders(response.data)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch orders'
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to fetch orders'
+      
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as { response?: { data?: { detail?: string } }; message?: string }
+        errorMessage = apiError.response?.data?.detail || apiError.message || errorMessage
+      } else if (err instanceof Error) {
+        errorMessage = err.message
+      }
+      
       setError(errorMessage)
       toast.error(errorMessage)
       console.error('Error fetching orders:', err)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { OrderStateBadge } from '@/components/orders/OrderStateBadge'
 import { EventButtons } from '@/components/orders/EventButtons'
 import { OrderHistory } from '@/components/orders/OrderHistory'
 import { orderApi } from '@/lib/api'
-import { Order, OrderEvent, EventType } from '@/lib/types'
+import { Order, OrderEvent, EventType, OrderMetadata } from '@/lib/types'
 import { ORDER_STATE_CONFIG } from '@/lib/constants'
 import { 
   ArrowLeft, 
@@ -33,6 +33,24 @@ interface OrderDetailPageProps {
   }>
 }
 
+// Helpers para type safety en metadata
+const getMetadataString = (metadata: OrderMetadata, key: string): string | undefined => {
+  if (!metadata || typeof metadata !== 'object') return undefined
+  
+  const value = (metadata as Record<string, unknown>)[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+const getMetadataPriority = (metadata: OrderMetadata): 'high' | 'medium' | 'low' | undefined => {
+  if (!metadata || typeof metadata !== 'object') return undefined
+  
+  const priority = (metadata as Record<string, unknown>).priority
+  if (priority === 'high' || priority === 'medium' || priority === 'low') {
+    return priority
+  }
+  return undefined
+}
+
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   // Unwrap params using React.use()
   const resolvedParams = use(params)
@@ -45,7 +63,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  const fetchOrderData = async (showRefreshToast = false) => {
+  const fetchOrderData = useCallback(async (showRefreshToast = false) => {
     try {
       if (showRefreshToast) setRefreshing(true)
       else setLoading(true)
@@ -64,11 +82,16 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       if (showRefreshToast) {
         toast.success('Order data refreshed')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching order data:', error)
-      if (error.response?.status === 404) {
-        toast.error('Order not found')
-        router.push('/orders')
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { status?: number } }
+        if (apiError.response?.status === 404) {
+          toast.error('Order not found')
+          router.push('/orders')
+        } else {
+          toast.error('Failed to fetch order data')
+        }
       } else {
         toast.error('Failed to fetch order data')
       }
@@ -76,13 +99,13 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [orderId, router])
 
   useEffect(() => {
     if (orderId) {
       fetchOrderData()
     }
-  }, [orderId])
+  }, [orderId, fetchOrderData])
 
   const handleEventProcessed = () => {
     fetchOrderData(true)
@@ -112,7 +135,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Order Not Found</h2>
           <p className="text-muted-foreground mb-4">
-            The order you're looking for doesn't exist or has been removed.
+            The order youre looking for doesnt exist or has been removed.
           </p>
           <Button onClick={() => router.push('/orders')}>
             Back to Orders
@@ -123,6 +146,12 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   }
 
   const stateConfig = ORDER_STATE_CONFIG[order.state]
+
+  // Extraer valores de metadata de forma type-safe
+  const customerName = getMetadataString(order.metadata, 'customer_name')
+  const customerEmail = getMetadataString(order.metadata, 'customer_email')
+  const notes = getMetadataString(order.metadata, 'notes')
+  const priority = getMetadataPriority(order.metadata)
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -246,7 +275,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </Card>
 
           {/* Customer Information */}
-          {(order.metadata.customer_name || order.metadata.customer_email || order.metadata.notes) && (
+          {(customerName || customerEmail || notes) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -255,48 +284,48 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {order.metadata.customer_name && (
+                {customerName && (
                   <div className="flex items-center gap-3">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Customer Name</p>
-                      <p className="font-medium">{order.metadata.customer_name}</p>
+                      <p className="font-medium">{customerName}</p>
                     </div>
                   </div>
                 )}
 
-                {order.metadata.customer_email && (
+                {customerEmail && (
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{order.metadata.customer_email}</p>
+                      <p className="font-medium">{customerEmail}</p>
                     </div>
                   </div>
                 )}
 
-                {order.metadata.priority && (
+                {priority && (
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Priority</p>
                       <Badge 
-                        variant={order.metadata.priority === 'high' ? 'destructive' : 
-                                order.metadata.priority === 'medium' ? 'default' : 'secondary'}
+                        variant={priority === 'high' ? 'destructive' : 
+                                priority === 'medium' ? 'default' : 'secondary'}
                       >
-                        {order.metadata.priority.toUpperCase()}
+                        {priority.toUpperCase()}
                       </Badge>
                     </div>
                   </div>
                 )}
 
-                {order.metadata.notes && (
+                {notes && (
                   <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 text-muted-foreground mt-1" />
                     <div>
                       <p className="text-sm text-muted-foreground">Notes</p>
                       <p className="mt-1 text-sm bg-gray-50 p-3 rounded-md">
-                        {order.metadata.notes}
+                        {notes}
                       </p>
                     </div>
                   </div>
