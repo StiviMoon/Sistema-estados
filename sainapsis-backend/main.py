@@ -5,6 +5,7 @@ import uvicorn
 
 from app.core.database import db
 from app.controllers.order_controller import router, health_router
+from app.controllers.support_controller import router as support_router  # 🆕 AGREGAR ESTA LÍNEA
 
 
 @asynccontextmanager
@@ -26,7 +27,7 @@ async def lifespan(app: FastAPI):
 # Crear aplicación FastAPI
 app = FastAPI(
     title="Sainapsis Order Management API",
-    description="State machine-based order processing system",
+    description="State machine-based order processing system with support tickets",  # 🔄 OPCIONAL: Actualizar descripción
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -43,6 +44,7 @@ app.add_middleware(
 # Registrar routers
 app.include_router(health_router)
 app.include_router(router)
+app.include_router(support_router)  
 
 
 # Root endpoint
@@ -55,6 +57,7 @@ async def root():
         "status": "running",
         "docs": "/docs",
         "health": "/health",
+        "features": ["Order Management", "Support Tickets", "State Machine"],  
     }
 
 

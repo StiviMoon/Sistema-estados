@@ -6,15 +6,40 @@ from app.models.domain import Order, OrderState, EventType
 from app.repositories.order_repository import order_repository
 from app.services.state_machine import StateMachine
 from app.core.exceptions import OrderNotFound, InvalidTransition, InvalidOrderData
-
+from app.repositories.support_repository import support_repository  
 
 class OrderService:
     """Servicio principal para lógica de negocio de órdenes"""
 
     def __init__(self):
         self.repository = order_repository
+        self.support_repository = support_repository 
         self.state_machine = StateMachine()
 
+    async def _apply_business_logic(
+        self, order: Order, event_type: EventType, metadata: Dict[str, Any]
+    ):
+        """Aplicar reglas de negocio específicas"""
+
+        # REGLA 1: paymentFailed con monto > 1000 USD
+        if event_type == EventType.PAYMENT_FAILED and order.amount > 1000:
+            # 🔄 CAMBIO: Usar el support_repository dedicado
+            ticket = await self.support_repository.create_support_ticket(
+                order_id=order.id,
+                reason=f"High amount payment failure: ${order.amount}",
+                amount=order.amount,
+                metadata={
+                    "event_type": event_type.value,
+                    "original_metadata": metadata,
+                    "auto_created": True,
+                    "created_by": "order_service",
+                    "priority": "high" if order.amount > 2000 else "medium"
+                },
+            )
+            print(
+                f"🎫 Support ticket created: {ticket.id} for high-value payment failure: Order {order.id}"
+            )
+    
     async def create_order(
         self, product_ids: List[str], amount: float, metadata: Dict[str, Any] = None
     ) -> Order:

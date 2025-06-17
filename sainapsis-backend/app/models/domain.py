@@ -1,3 +1,5 @@
+# Agregar esto a tu app/models/domain.py
+
 from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
@@ -46,3 +48,16 @@ class Order:
     metadata: Dict[str, Any]
     created_at: datetime
     updated_at: datetime
+
+
+@dataclass
+class SupportTicket:
+    """Entidad de ticket de soporte"""
+    id: UUID
+    order_id: UUID
+    reason: str
+    amount: float
+    status: str
+    metadata: Dict[str, Any]
+    created_at: datetime
+    

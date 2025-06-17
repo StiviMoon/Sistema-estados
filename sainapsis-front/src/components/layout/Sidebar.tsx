@@ -14,7 +14,8 @@ import {
   X,
   ChevronRight,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  User
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -132,6 +133,11 @@ export function Sidebar({ initialOrders = [] }: SidebarProps) {
       href: '/orders/create',
       icon: Plus,
       current: pathname === '/orders/create',
+    },  {
+      name: 'Support',
+      href: '/support',
+      icon: User,
+      current: pathname === '/support',
     },
   ]
 

@@ -1,6 +1,6 @@
-import { OrderState, EventType } from './types'
+import { OrderState, EventType, SupportTicketStatus } from './types'
 
-// Configuración de estados
+// Configuración de estados de órdenes
 export const ORDER_STATE_CONFIG: Record<OrderState, {
   label: string
   color: string
@@ -174,12 +174,53 @@ export const EVENT_CONFIG: Record<EventType, {
   }
 }
 
+// Configuración de estados de tickets de soporte
+export const SUPPORT_TICKET_STATUS_CONFIG: Record<SupportTicketStatus, {
+  label: string
+  color: string
+  icon: string
+  description: string
+}> = {
+  open: {
+    label: 'Open',
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: '🔴',
+    description: 'Ticket is open and awaiting attention'
+  },
+  in_progress: {
+    label: 'In Progress',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    icon: '🟡',
+    description: 'Ticket is being worked on'
+  },
+  resolved: {
+    label: 'Resolved',
+    color: 'bg-green-100 text-green-800 border-green-200',
+    icon: '✅',
+    description: 'Issue has been resolved'
+  },
+  closed: {
+    label: 'Closed',
+    color: 'bg-gray-100 text-gray-800 border-gray-200',
+    icon: '⚫',
+    description: 'Ticket is closed'
+  }
+}
+
 // API Endpoints
 export const API_ENDPOINTS = {
+  // Orders
   ORDERS: '/orders',
   ORDER_BY_ID: (id: string) => `/orders/${id}`,
   PROCESS_EVENT: (id: string) => `/orders/${id}/events`,
   ALLOWED_EVENTS: (id: string) => `/orders/${id}/allowed-events`,
   ORDER_HISTORY: (id: string) => `/orders/${id}/history`,
-  HEALTH: '/health'
+  HEALTH: '/health',
+  
+  // Support Tickets
+  SUPPORT_TICKETS: '/support/tickets',
+  SUPPORT_TICKET_BY_ID: (id: string) => `/support/tickets/${id}`,
+  SUPPORT_TICKETS_BY_ORDER: (orderId: string) => `/support/orders/${orderId}/tickets`,
+  SUPPORT_UPDATE_STATUS: (id: string) => `/support/tickets/${id}/status`,
+  SUPPORT_STATS: '/support/tickets/stats/summary',
 } as const

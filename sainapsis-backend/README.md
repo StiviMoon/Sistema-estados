@@ -68,6 +68,80 @@ cancelled  cancelled   cancelled     cancelled   cancelled
 
 ---
 
+## 📁 Estructura del Proyecto
+
+```
+sainapsis-backend/
+├── app/                          # 📦 Aplicación principal
+│   ├── __pycache__/             # Cache de Python
+│   ├── controllers/             # 🎮 Capa de Controllers
+│   │   ├── __pycache__/
+│   │   └── order_controller.py  # Endpoints FastAPI
+│   ├── core/                    # ⚙️ Configuración central
+│   │   ├── __pycache__/
+│   │   ├── config.py           # Variables de entorno
+│   │   ├── database.py         # Configuración de BD
+│   │   └── exceptions.py       # Excepciones personalizadas
+│   ├── models/                  # 📊 Modelos de datos
+│   │   ├── __pycache__/
+│   │   ├── domain.py           # Modelos de dominio
+│   │   ├── enums.py            # Enumeraciones
+│   │   └── schemas.py          # Esquemas Pydantic
+│   ├── repositories/            # 🗄️ Capa de Repositorios
+│   │   ├── __pycache__/
+│   │   ├── base_repository.py  # Repositorio base
+│   │   ├── order_repository.py # Repositorio de órdenes
+│   │   └── support_repository.py # Repositorio de tickets
+│   ├── services/                # 🔧 Capa de Servicios
+│   │   ├── __pycache__/
+│   │   ├── order_service.py    # Lógica de negocio
+│   │   └── state_machine.py    # Máquina de estados
+│   └── utils/                   # 🛠️ Utilidades
+│       ├── __pycache__/
+│       └── logger.py           # Sistema de logging
+├── .venv/                       # Entorno virtual de Python
+├── .env                         # Variables de entorno (no incluir en git)
+├── .env.example                 # Template de variables de entorno
+├── .gitignore                   # Archivos ignorados por git
+├── main.py                      # 🚀 Punto de entrada de la aplicación
+├── README.md                    # Este archivo
+└── requirements.txt             # Dependencias Python
+```
+
+### 📋 Descripción de Componentes
+
+#### 🎮 Controllers (`app/controllers/`)
+- **order_controller.py**: Define todos los endpoints REST de la API
+- Maneja validación HTTP, parsing de requests y responses
+- Actúa como interfaz entre el mundo HTTP y la lógica de negocio
+
+#### ⚙️ Core (`app/core/`)
+- **config.py**: Gestión centralizada de configuración y variables de entorno
+- **database.py**: Pool de conexiones y configuración de PostgreSQL
+- **exceptions.py**: Excepciones personalizadas del dominio
+
+#### 📊 Models (`app/models/`)
+- **domain.py**: Entidades del dominio (Order, OrderEvent, SupportTicket)
+- **enums.py**: Enumeraciones (OrderState, EventType)
+- **schemas.py**: Modelos Pydantic para validación y serialización
+
+#### 🗄️ Repositories (`app/repositories/`)
+- **base_repository.py**: Clase base con operaciones CRUD comunes
+- **order_repository.py**: Operaciones específicas de órdenes
+- **support_repository.py**: Gestión de tickets de soporte
+- Implementa el patrón Repository para abstracción de datos
+
+#### 🔧 Services (`app/services/`)
+- **order_service.py**: Lógica de negocio central del sistema
+- **state_machine.py**: Implementación de la máquina de estados
+- Coordina repositories y aplica reglas de negocio
+
+#### 🛠️ Utils (`app/utils/`)
+- **logger.py**: Sistema de logging estructurado
+- Utilidades compartidas por toda la aplicación
+
+---
+
 ## 🛠️ Tecnologías Utilizadas
 
 - **Python 3.12+**
@@ -96,13 +170,13 @@ cd sainapsis-backend
 ### 2. Crear entorno virtual
 
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # Linux/Mac
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### 3. Instalar dependencias
@@ -219,15 +293,15 @@ La API estará disponible en: **http://localhost:8000**
 
 ### Endpoints Principales
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check del sistema |
-| `POST` | `/orders` | Crear nueva orden |
-| `GET` | `/orders` | Listar todas las órdenes |
-| `GET` | `/orders/{id}` | Obtener orden por ID |
-| `POST` | `/orders/{id}/events` | Procesar evento en orden |
-| `GET` | `/orders/{id}/allowed-events` | Eventos permitidos |
-| `GET` | `/orders/{id}/history` | Historial de eventos |
+| Método | Endpoint | Descripción | Controller |
+|--------|----------|-------------|------------|
+| `GET` | `/health` | Health check del sistema | `order_controller.py` |
+| `POST` | `/orders` | Crear nueva orden | `order_controller.py` |
+| `GET` | `/orders` | Listar todas las órdenes | `order_controller.py` |
+| `GET` | `/orders/{id}` | Obtener orden por ID | `order_controller.py` |
+| `POST` | `/orders/{id}/events` | Procesar evento en orden | `order_controller.py` |
+| `GET` | `/orders/{id}/allowed-events` | Eventos permitidos | `order_controller.py` |
+| `GET` | `/orders/{id}/history` | Historial de eventos | `order_controller.py` |
 
 ### Documentación Interactiva
 
@@ -300,6 +374,67 @@ Content-Type: application/json
 
 ---
 
+## 🔄 Flujo de Datos
+
+### Procesamiento de una Orden
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as Controllers
+    participant Service as Services
+    participant Repo as Repositories
+    participant DB as Database
+
+    Client->>Controller: POST /orders
+    Controller->>Service: create_order()
+    Service->>Repo: save_order()
+    Repo->>DB: INSERT INTO orders
+    DB-->>Repo: order_id
+    Repo-->>Service: Order entity
+    Service-->>Controller: Order response
+    Controller-->>Client: HTTP 201 + Order JSON
+
+    Client->>Controller: POST /orders/{id}/events
+    Controller->>Service: process_event()
+    Service->>Service: validate_transition()
+    Service->>Repo: update_order_state()
+    Service->>Repo: log_event()
+    Service->>Service: apply_business_logic()
+    Service-->>Controller: Event result
+    Controller-->>Client: HTTP 200 + Result JSON
+```
+
+---
+
+## ⚙️ Reglas de Negocio
+
+### Regla 1: Tickets de Soporte Automáticos
+
+**Implementación**: `app/services/order_service.py` → `_apply_business_logic()`
+
+**Condición**: Cuando se recibe el evento `paymentFailed` y el monto de la orden es mayor a $1000 USD.
+
+**Acción**: Se crea automáticamente un ticket de soporte en la tabla `support_tickets`.
+
+**Código:**
+```python
+async def _apply_business_logic(self, order: Order, event_type: EventType, metadata: dict):
+    """Aplica reglas de negocio específicas por evento"""
+    if event_type == EventType.PAYMENT_FAILED and order.amount > 1000:
+        await self._create_support_ticket(order, "High amount payment failure")
+```
+
+### Extensibilidad
+
+El sistema está diseñado para agregar nuevas reglas fácilmente:
+
+1. **Ubicación**: `app/services/order_service.py` → `_apply_business_logic()`
+2. **Patrón**: Usar condiciones `if` para diferentes tipos de eventos
+3. **Repositorios**: Utilizar los repositorios correspondientes para persistir datos
+
+---
+
 ## 🧪 Testing
 
 ### Probar con Postman
@@ -324,58 +459,6 @@ pending → noVerificationNeeded → pending_payment
 - **Transición inválida**: `POST /orders/{id}/events` con evento no permitido
 - **Orden inexistente**: `GET /orders/uuid-inexistente`
 - **Datos inválidos**: `POST /orders` con amount negativo
-
----
-
-## ⚙️ Reglas de Negocio
-
-### Regla 1: Tickets de Soporte Automáticos
-
-**Condición**: Cuando se recibe el evento `paymentFailed` y el monto de la orden es mayor a $1000 USD.
-
-**Acción**: Se crea automáticamente un ticket de soporte en la tabla `support_tickets`.
-
-**Ejemplo:**
-```json
-{
-    "event_type": "paymentFailed",
-    "metadata": {"reason": "Card declined"}
-}
-```
-
-Si `order.amount > 1000`, se genera:
-```json
-{
-    "reason": "High amount payment failure: $1500.00",
-    "status": "open",
-    "auto_created": true
-}
-```
-
-### Extensibilidad
-
-El sistema está diseñado para agregar nuevas reglas fácilmente en el método `_apply_business_logic()` del `OrderService`.
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-sainapsis-backend/
-├── main.py              # Aplicación FastAPI principal
-├── controllers.py       # Endpoints y manejo HTTP
-├── service.py          # Lógica de negocio
-├── repository.py       # Acceso a datos (patrón Repository)
-├── state_machine.py    # Máquina de estados
-├── database.py         # Configuración de base de datos
-├── models.py           # Modelos Pydantic y enums
-├── exceptions.py       # Excepciones personalizadas
-├── .env                # Variables de entorno (no incluir en git)
-├── .env.example        # Template de variables de entorno
-├── .gitignore          # Archivos ignorados por git
-├── requirements.txt    # Dependencias Python
-└── README.md           # Este archivo
-```
 
 ---
 
@@ -404,13 +487,13 @@ Respuesta cuando todo está funcionando:
 }
 ```
 
-### Logging de Eventos
+### Sistema de Logging
 
-Todos los cambios de estado se registran automáticamente en la tabla `order_events` con:
-- Evento procesado
-- Estado anterior y nuevo
-- Timestamp
-- Metadata del evento
+**Implementación**: `app/utils/logger.py`
+
+Todos los cambios de estado se registran automáticamente en:
+- **Base de datos**: Tabla `order_events` con historial completo
+- **Logs de aplicación**: Sistema de logging estructurado
 
 ---
 
@@ -472,8 +555,22 @@ Desarrollado por **Steven** para la prueba técnica de **Sainapsis**.
 
 ---
 
-## 📞 Soporte
+## 🚀 Próximos Pasos
 
-Para preguntas sobre la implementación o el sistema, contactar al desarrollador.
+### Mejoras Potenciales
+
+1. **Testing**: Implementar tests unitarios y de integración
+2. **CI/CD**: Pipeline de despliegue automatizado
+3. **Métricas**: Sistema de métricas con Prometheus/Grafana
+4. **Caching**: Redis para optimizar consultas frecuentes
+5. **Rate Limiting**: Protección contra abuso de API
+
+### Escalabilidad
+
+- **Message Queues**: RabbitMQ/Apache Kafka para eventos asíncronos
+- **Microservicios**: Separar en servicios independientes
+- **Load Balancing**: Múltiples instancias de la aplicación
+
+---
 
 **Documentación adicional**: http://localhost:8000/docs

@@ -30,6 +30,13 @@ export type EventType =
   | 'itemReceivedBack'
   | 'refundProcessed'
 
+// Estados de tickets de soporte
+export type SupportTicketStatus = 
+  | 'open'
+  | 'in_progress'
+  | 'resolved'
+  | 'closed'
+
 // Tipo para metadata que puede ser un objeto o un string JSON serializado
 export type OrderMetadata = 
   | Record<string, string | number | boolean | null | undefined>
@@ -37,7 +44,14 @@ export type OrderMetadata =
   | null
   | undefined
 
-// Modelos de datos
+// Tipo para metadata de tickets
+export type SupportTicketMetadata = 
+  | Record<string, string | number | boolean | null | undefined>
+  | string
+  | null
+  | undefined
+
+// Modelos de datos - Orders
 export interface Order {
   id: string
   product_ids: string[]
@@ -79,4 +93,40 @@ export interface OrderEvent {
   new_state: OrderState
   metadata: OrderMetadata
   created_at: string
+}
+
+// Modelos de datos - Support Tickets
+export interface SupportTicket {
+  id: string
+  order_id: string
+  reason: string
+  amount: number
+  status: SupportTicketStatus
+  metadata: SupportTicketMetadata
+  created_at: string
+}
+
+// Request para actualizar estado del ticket
+export interface UpdateTicketStatusRequest {
+  status: SupportTicketStatus
+  metadata?: SupportTicketMetadata
+}
+
+// Respuesta al actualizar ticket
+export interface UpdateTicketStatusResponse {
+  message: string
+  ticket_id: string
+  new_status: SupportTicketStatus
+  updated_ticket: SupportTicket
+}
+
+// Estadísticas de tickets
+export interface SupportTicketStats {
+  total_tickets: number
+  by_status: Record<SupportTicketStatus, {
+    count: number
+    avg_amount: number
+  }>
+  generated_at: string
+  error?: string
 }

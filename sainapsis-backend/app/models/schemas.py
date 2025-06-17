@@ -1,3 +1,5 @@
+# Agregar esto a tu app/models/schemas.py
+
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -32,3 +34,39 @@ class EventResponse(BaseModel):
     new_state: OrderState
     event_type: EventType
     processed_at: datetime
+
+
+# 🆕 NUEVOS ESQUEMAS PARA SUPPORT TICKETS
+class SupportTicketResponse(BaseModel):
+    """Respuesta de ticket de soporte"""
+    id: UUID
+    order_id: UUID
+    reason: str
+    amount: float
+    status: str
+    metadata: Dict[str, Any]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UpdateTicketStatusRequest(BaseModel):
+    """Request para actualizar estado del ticket"""
+    status: str = Field(..., description="Nuevo estado del ticket")
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None, 
+        description="Metadata adicional"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "resolved",
+                "metadata": {
+                    "resolved_by": "support_agent_1",
+                    "resolution_notes": "Payment issue resolved with customer",
+                    "resolution_time": "2025-06-12T15:30:00Z"
+                }
+            }
+        }

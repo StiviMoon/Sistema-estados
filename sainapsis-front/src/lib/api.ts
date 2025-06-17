@@ -4,7 +4,11 @@ import {
   CreateOrderRequest, 
   ProcessEventRequest, 
   EventResponse, 
-  OrderHistory 
+  OrderHistory,
+  SupportTicket, 
+  UpdateTicketStatusRequest, 
+  UpdateTicketStatusResponse,
+  SupportTicketStats 
 } from './types'
 import { API_ENDPOINTS } from './constants'
 
@@ -40,7 +44,7 @@ api.interceptors.response.use(
   }
 )
 
-// API functions
+// Orders API
 export const orderApi = {
   // Health check
   healthCheck: (): Promise<AxiosResponse> => 
@@ -69,6 +73,36 @@ export const orderApi = {
   // Get order history
   getHistory: (id: string): Promise<AxiosResponse<OrderHistory>> => 
     api.get(API_ENDPOINTS.ORDER_HISTORY(id)),
+}
+
+// Support Tickets API
+export const supportApi = {
+  // Get all tickets
+  getAll: (): Promise<AxiosResponse<SupportTicket[]>> => 
+    api.get(API_ENDPOINTS.SUPPORT_TICKETS),
+
+  // Get ticket by ID
+  getById: (id: string): Promise<AxiosResponse<SupportTicket>> => 
+    api.get(API_ENDPOINTS.SUPPORT_TICKET_BY_ID(id)),
+
+  // Get tickets by order ID
+  getByOrderId: (orderId: string): Promise<AxiosResponse<SupportTicket[]>> => 
+    api.get(API_ENDPOINTS.SUPPORT_TICKETS_BY_ORDER(orderId)),
+
+  // Update ticket status
+  updateStatus: (
+    id: string, 
+    data: UpdateTicketStatusRequest
+  ): Promise<AxiosResponse<UpdateTicketStatusResponse>> => 
+    api.patch(API_ENDPOINTS.SUPPORT_UPDATE_STATUS(id), data),
+
+  // Get tickets statistics
+  getStats: (): Promise<AxiosResponse<SupportTicketStats>> => 
+    api.get(API_ENDPOINTS.SUPPORT_STATS),
+
+  // Test endpoint
+  test: (): Promise<AxiosResponse> => 
+    api.get('/support/test'),
 }
 
 // Export default

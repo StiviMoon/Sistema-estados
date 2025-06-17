@@ -1,3 +1,5 @@
+# Agregar esto a tu app/core/exceptions.py
+
 class OrderException(Exception):
     def __init__(self, message: str, status_code: int = 400):
         self.message = message
@@ -25,3 +27,8 @@ class InvalidOrderData(OrderException):
 class DatabaseError(OrderException):
     def __init__(self, message: str):
         super().__init__(f"Database error: {message}", 500)
+
+class TicketNotFound(OrderException):
+    """Excepción cuando no se encuentra un ticket"""
+    def __init__(self, ticket_id: str):
+        super().__init__(f"Ticket not found: {ticket_id}", 404)
