@@ -1,3 +1,4 @@
+#order_service.py
 from typing import List, Dict, Any
 from uuid import UUID
 from datetime import datetime
@@ -23,7 +24,7 @@ class OrderService:
 
         # REGLA 1: paymentFailed con monto > 1000 USD
         if event_type == EventType.PAYMENT_FAILED and order.amount > 1000:
-            # 🔄 CAMBIO: Usar el support_repository dedicado
+           
             ticket = await self.support_repository.create_support_ticket(
                 order_id=order.id,
                 reason=f"High amount payment failure: ${order.amount}",

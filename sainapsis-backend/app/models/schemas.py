@@ -1,4 +1,4 @@
-# Agregar esto a tu app/models/schemas.py
+#  app/models/schemas.py
 
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -36,7 +36,6 @@ class EventResponse(BaseModel):
     processed_at: datetime
 
 
-# 🆕 NUEVOS ESQUEMAS PARA SUPPORT TICKETS
 class SupportTicketResponse(BaseModel):
     """Respuesta de ticket de soporte"""
     id: UUID

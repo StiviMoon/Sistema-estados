@@ -1,4 +1,4 @@
-# Agregar esto a tu app/core/exceptions.py
+# app/core/exceptions.py
 
 class OrderException(Exception):
     def __init__(self, message: str, status_code: int = 400):
