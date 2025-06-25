@@ -8,7 +8,8 @@ import {
   SupportTicket, 
   UpdateTicketStatusRequest, 
   UpdateTicketStatusResponse,
-  SupportTicketStats 
+  SupportTicketStats, 
+  FilteredEventsResponse
 } from './types'
 import { API_ENDPOINTS } from './constants'
 
@@ -73,6 +74,11 @@ export const orderApi = {
   // Get order history
   getHistory: (id: string): Promise<AxiosResponse<OrderHistory>> => 
     api.get(API_ENDPOINTS.ORDER_HISTORY(id)),
+
+   getFilteredAllowedEvents: (
+    id: string
+  ): Promise<AxiosResponse<FilteredEventsResponse>> =>
+    api.get(API_ENDPOINTS.V2_ALLOWED_EVENTS_FILTERED(id)),
 }
 
 // Support Tickets API

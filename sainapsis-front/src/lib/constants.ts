@@ -31,6 +31,12 @@ export const ORDER_STATE_CONFIG: Record<OrderState, {
     icon: '✅',
     description: 'Order confirmed and approved'
   },
+  reviewing: {
+    label: 'Reviewing',
+    color: 'bg-pink-100 text-pink-800 border-pink-200',
+    icon: '🔍',
+    description: 'Order is under review'
+  },
   processing: {
     label: 'Processing',
     color: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -77,6 +83,7 @@ export const ORDER_STATE_CONFIG: Record<OrderState, {
 
 // Configuración de eventos
 export const EVENT_CONFIG: Record<EventType, {
+  icon: string
   label: string
   description: string
   variant: 'default' | 'destructive' | 'outline' | 'secondary'
@@ -86,91 +93,127 @@ export const EVENT_CONFIG: Record<EventType, {
     label: 'Require Verification',
     description: 'Put order on hold for biometrical verification',
     variant: 'outline',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '🔍'
   },
   noVerificationNeeded: {
     label: 'Skip Verification',
     description: 'Skip verification and proceed to payment',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   paymentFailed: {
     label: 'Payment Failed',
     description: 'Mark payment as failed',
     variant: 'destructive',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '❌'  
   },
   orderCancelled: {
     label: 'Cancel Order',
     description: 'Cancel order (system)',
     variant: 'destructive',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '❌'
   },
   biometricalVerificationSuccessful: {
     label: 'Verification Success',
     description: 'Biometrical verification successful',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   verificationFailed: {
     label: 'Verification Failed',
     description: 'Verification failed, cancel order',
     variant: 'destructive',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '❌'
   },
   orderCancelledByUser: {
     label: 'Cancel by User',
     description: 'User requested cancellation',
     variant: 'destructive',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '❌'
   },
   paymentSuccessful: {
     label: 'Payment Success',
     description: 'Payment processed successfully',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   preparingShipment: {
     label: 'Prepare Shipment',
     description: 'Start preparing order for shipment',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   itemDispatched: {
     label: 'Dispatch Item',
     description: 'Item has been dispatched',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   itemReceivedByCustomer: {
     label: 'Mark Delivered',
     description: 'Customer received the item',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   deliveryIssue: {
     label: 'Delivery Issue',
     description: 'There was an issue with delivery',
     variant: 'outline',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '⚠️'
   },
   returnInitiatedByCustomer: {
     label: 'Initiate Return',
     description: 'Customer wants to return item',
     variant: 'outline',
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    icon: '↩️'
   },
   itemReceivedBack: {
     label: 'Item Received',
     description: 'Returned item received',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
   },
   refundProcessed: {
     label: 'Process Refund',
     description: 'Process refund to customer',
     variant: 'default',
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    icon: '✅'
+  },
+  manualReviewRequired: {
+    label: 'Manual Review',
+    description: 'Order requires manual review',
+    variant: 'outline',
+    requiresConfirmation: true,
+    icon: '⚠️'
+  },
+  reviewApproved: {
+    label: 'Review Approved',
+    description: 'Order review approved',
+    variant: 'default',
+    requiresConfirmation: false,
+    icon: '✅'  
+  },
+  reviewRejected: {
+    label: 'Review Rejected',
+    description: 'Order review rejected',
+    variant: 'destructive',
+    requiresConfirmation: true,
+    icon: '❌'
   }
 }
 
@@ -223,4 +266,13 @@ export const API_ENDPOINTS = {
   SUPPORT_TICKETS_BY_ORDER: (orderId: string) => `/support/orders/${orderId}/tickets`,
   SUPPORT_UPDATE_STATUS: (id: string) => `/support/tickets/${id}/status`,
   SUPPORT_STATS: '/support/tickets/stats/summary',
+  
+
+  V2_ORDER_BY_ID: (id: string) => `/api/v2/orders/${id}`,
+  V2_ALLOWED_EVENTS_FILTERED: (id: string) => `/api/v2/orders/${id}/allowed-events-filtered`,
+  V2_PROCESS_EVENT_ENHANCED: (id: string) => `/api/v2/orders/${id}/events-enhanced`,
+  V2_BUSINESS_RULES_PREVIEW: (id: string) => `/api/v2/orders/${id}/business-preview`,
+  V2_ADMIN_TOGGLE_RULE: (ruleId: string) => `/api/v2/orders/admin/rules/${ruleId}/toggle`,
+  V2_CHANGE_THRESHOLD: '/api/v2/orders/admin/small-order-threshold',
+  V2_TEST_SMALL_ORDER_RULE: '/api/v2/orders/test/small-order-rule',
 } as const

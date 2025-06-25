@@ -1,4 +1,11 @@
 # app/repositories/support_repository.py
+
+"""
+ El SupportRepository es responsable de todas las operaciones de base de datos relacionadas con tickets de soporte. 
+ Sigue el patrón Repository para aislar la lógica de acceso a datos.
+"""
+
+
 import json
 from typing import List, Dict, Any, Optional
 from uuid import UUID, uuid4

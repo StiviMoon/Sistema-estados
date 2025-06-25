@@ -64,42 +64,66 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [refreshing, setRefreshing] = useState(false)
 
   const fetchOrderData = useCallback(async (showRefreshToast = false) => {
-    try {
-      if (showRefreshToast) setRefreshing(true)
-      else setLoading(true)
+  try {
+    if (showRefreshToast) setRefreshing(true)
+    else setLoading(true)
 
-      // Fetch order details
+    // Fetch detalles, eventos filtrados y el historial
+    const [orderResponse, filteredEventsResponse, historyResponse] = await Promise.all([
+      orderApi.getById(orderId),
+      orderApi.getFilteredAllowedEvents(orderId),
+      orderApi.getHistory(orderId)
+    ])
+
+    setOrder(orderResponse.data)
+    setAllowedEvents(filteredEventsResponse.data.filtered_events)
+    setHistory(historyResponse.data.events || [])
+
+    if (filteredEventsResponse.data.small_order_rule_applied) {
+      toast.message('Verificación omitida por reglas de negocio')
+    }
+
+    if (showRefreshToast) {
+      toast.success('Order data refreshed')
+    }
+  } catch (error: unknown) {
+    console.error('Error fetching order data:', error)
+    
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      typeof (error as { response?: { status?: number } }).response === 'object' &&
+      (error as { response?: { status?: number } }).response !== null &&
+      'status' in (error as { response?: { status?: number } }).response!
+    ) {
+      const status = (error as { response?: { status?: number } }).response?.status
+      if (status === 404) {
+        toast.error('Order not found')
+        router.push('/orders')
+        return
+      }
+    }
+
+    toast.warning('No se pudo aplicar reglas, usando API clásica')
+    try {
       const [orderResponse, eventsResponse, historyResponse] = await Promise.all([
         orderApi.getById(orderId),
         orderApi.getAllowedEvents(orderId),
         orderApi.getHistory(orderId)
       ])
-
       setOrder(orderResponse.data)
       setAllowedEvents(eventsResponse.data)
       setHistory(historyResponse.data.events || [])
-
-      if (showRefreshToast) {
-        toast.success('Order data refreshed')
-      }
-    } catch (error: unknown) {
-      console.error('Error fetching order data:', error)
-      if (error && typeof error === 'object' && 'response' in error) {
-        const apiError = error as { response?: { status?: number } }
-        if (apiError.response?.status === 404) {
-          toast.error('Order not found')
-          router.push('/orders')
-        } else {
-          toast.error('Failed to fetch order data')
-        }
-      } else {
-        toast.error('Failed to fetch order data')
-      }
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
+    } catch {
+      toast.error('Failed to fetch order data')
     }
-  }, [orderId, router])
+  } finally {
+    setLoading(false)
+    setRefreshing(false)
+  }
+}, [orderId, router])
+
 
   useEffect(() => {
     if (orderId) {

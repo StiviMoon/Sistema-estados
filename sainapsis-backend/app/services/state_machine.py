@@ -1,4 +1,3 @@
-
 from typing import Dict, Tuple, List
 from app.models.domain import OrderState, EventType
 from app.core.exceptions import InvalidTransition
@@ -10,52 +9,49 @@ class StateMachine:
     # Matriz de transiciones: (estado_actual, evento) -> nuevo_estado
     TRANSITIONS: Dict[Tuple[OrderState, EventType], OrderState] = {
         # Desde PENDING
-        (
-            OrderState.PENDING,
-            EventType.PENDING_BIOMETRICAL_VERIFICATION,
-        ): OrderState.ON_HOLD,
-        (
-            OrderState.PENDING,
-            EventType.NO_VERIFICATION_NEEDED,
-        ): OrderState.PENDING_PAYMENT,
+        (OrderState.PENDING, EventType.PENDING_BIOMETRICAL_VERIFICATION): OrderState.ON_HOLD,
+        (OrderState.PENDING, EventType.NO_VERIFICATION_NEEDED): OrderState.PENDING_PAYMENT,
         (OrderState.PENDING, EventType.PAYMENT_FAILED): OrderState.CANCELLED,
         (OrderState.PENDING, EventType.ORDER_CANCELLED): OrderState.CANCELLED,
+
         # Desde ON_HOLD
-        (
-            OrderState.ON_HOLD,
-            EventType.BIOMETRICAL_VERIFICATION_SUCCESSFUL,
-        ): OrderState.PENDING_PAYMENT,
+        (OrderState.ON_HOLD, EventType.BIOMETRICAL_VERIFICATION_SUCCESSFUL): OrderState.PENDING_PAYMENT,
         (OrderState.ON_HOLD, EventType.VERIFICATION_FAILED): OrderState.CANCELLED,
         (OrderState.ON_HOLD, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+
         # Desde PENDING_PAYMENT
-        (
-            OrderState.PENDING_PAYMENT,
-            EventType.PAYMENT_SUCCESSFUL,
-        ): OrderState.CONFIRMED,
-        (
-            OrderState.PENDING_PAYMENT,
-            EventType.ORDER_CANCELLED_BY_USER,
-        ): OrderState.CANCELLED,
+        (OrderState.PENDING_PAYMENT, EventType.PAYMENT_SUCCESSFUL): OrderState.CONFIRMED,
+        (OrderState.PENDING_PAYMENT, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+
         # Desde CONFIRMED
         (OrderState.CONFIRMED, EventType.PREPARING_SHIPMENT): OrderState.PROCESSING,
         (OrderState.CONFIRMED, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+
+        # De CONFIRMED a REVIEWING cuando se requiere revisión
+        (OrderState.CONFIRMED, EventType.MANUAL_REVIEW_REQUIRED): OrderState.REVIEWING,
+        
+        # Desde REVIEWING puede rechazar o aprobar
+        (OrderState.REVIEWING, EventType.REVIEW_APPROVED): OrderState.PROCESSING,
+        (OrderState.REVIEWING, EventType.REVIEW_REJECTED): OrderState.CANCELLED,
+        
+        # Tambien se puede cancelar desde REVIEWING
+        (OrderState.REVIEWING, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+        
         # Desde PROCESSING
         (OrderState.PROCESSING, EventType.ITEM_DISPATCHED): OrderState.SHIPPED,
-        (
-            OrderState.PROCESSING,
-            EventType.ORDER_CANCELLED_BY_USER,
-        ): OrderState.CANCELLED,
+        (OrderState.PROCESSING, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+
         # Desde SHIPPED
         (OrderState.SHIPPED, EventType.ITEM_RECEIVED_BY_CUSTOMER): OrderState.DELIVERED,
         (OrderState.SHIPPED, EventType.DELIVERY_ISSUE): OrderState.ON_HOLD,
         (OrderState.SHIPPED, EventType.ORDER_CANCELLED_BY_USER): OrderState.CANCELLED,
+
         # Desde DELIVERED
-        (
-            OrderState.DELIVERED,
-            EventType.RETURN_INITIATED_BY_CUSTOMER,
-        ): OrderState.RETURNING,
+        (OrderState.DELIVERED, EventType.RETURN_INITIATED_BY_CUSTOMER): OrderState.RETURNING,
+
         # Desde RETURNING
         (OrderState.RETURNING, EventType.ITEM_RECEIVED_BACK): OrderState.RETURNED,
+
         # Desde RETURNED
         (OrderState.RETURNED, EventType.REFUND_PROCESSED): OrderState.REFUNDED,
     }
@@ -64,7 +60,6 @@ class StateMachine:
     NON_CANCELLABLE_STATES = {
         OrderState.DELIVERED,
         OrderState.RETURNED,
-        OrderState.REFUNDED,
         OrderState.CANCELLED,
     }
 
@@ -105,5 +100,9 @@ class StateMachine:
     @classmethod
     def is_final_state(cls, state: OrderState) -> bool:
         """Verificar si un estado es final"""
-        final_states = {OrderState.DELIVERED, OrderState.REFUNDED, OrderState.CANCELLED}
+        final_states = {
+            OrderState.DELIVERED,
+            OrderState.REFUNDED,
+            OrderState.CANCELLED,
+        }
         return state in final_states

@@ -4,6 +4,7 @@ export type OrderState =
   | 'on_hold'
   | 'pending_payment'
   | 'confirmed'
+  | 'reviewing'
   | 'processing'
   | 'shipped'
   | 'delivered'
@@ -29,6 +30,9 @@ export type EventType =
   | 'returnInitiatedByCustomer'
   | 'itemReceivedBack'
   | 'refundProcessed'
+  | 'manualReviewRequired'
+  | 'reviewApproved'
+  | 'reviewRejected'
 
 // Estados de tickets de soporte
 export type SupportTicketStatus = 
@@ -129,4 +133,16 @@ export interface SupportTicketStats {
   }>
   generated_at: string
   error?: string
+}
+
+export interface FilteredEventsResponse {
+  order_id: string
+  order_amount: number
+  order_state: string
+  base_events: string[]
+  filtered_events: string[]
+  events_removed: string[]
+  events_removed_count: number
+  small_order_rule_applied: boolean
+  threshold: number
 }

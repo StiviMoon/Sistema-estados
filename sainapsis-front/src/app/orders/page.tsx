@@ -137,7 +137,8 @@ export default function OrdersPage() {
       returning: 0,
       returned: 0,
       refunded: 0,
-      cancelled: 0
+      cancelled: 0,
+      reviewing:0
     }
     
     // Count orders by state

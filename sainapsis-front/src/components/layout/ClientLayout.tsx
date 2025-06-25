@@ -36,7 +36,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         </div>
 
         {/* Mobile Sidebar - Handled inside Sidebar component */}
-        <div className="md:hidden">
+        <div className="md:hidden fixed inset-0 z-40 flex">
           <Sidebar initialOrders={initialOrders} />
         </div>
 
@@ -46,7 +46,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           
 
           {/* Page Content */}
-          <main className="flex-1">
+          <main className="flex-1 pt-12 md:pt-0">
             {children}
           </main>
         </div>

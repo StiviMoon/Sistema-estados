@@ -1,5 +1,11 @@
 
 # File: app/repositories/order_repository.py
+
+"""
+    El OrderRepository es el repository más importante del sistema. 
+    Maneja todas las operaciones de base de datos para órdenes, eventos y la creación de tickets de soporte.
+"""
+
 import json
 from typing import Optional, List
 from uuid import UUID, uuid4

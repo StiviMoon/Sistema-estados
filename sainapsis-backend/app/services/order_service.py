@@ -1,4 +1,11 @@
 #order_service.py
+
+"""
+El OrderService es la pieza más importante del sistema. 
+Coordina toda la lógica de negocio, orquesta los repositories y valida las transiciones de estado.
+"""
+
+
 from typing import List, Dict, Any
 from uuid import UUID
 from datetime import datetime
@@ -40,7 +47,25 @@ class OrderService:
             print(
                 f"🎫 Support ticket created: {ticket.id} for high-value payment failure: Order {order.id}"
             )
-    
+
+         # Órdenes > $5000 requieren revisión manual
+        
+        if event_type == EventType.PAYMENT_SUCCESSFUL and order.amount > 5000:
+            # En lugar de procesar automáticamente, crear ticket para revisión
+            ticket = await self.support_repository.create_support_ticket(
+                order_id=order.id,
+                reason=f"High value order requires manual review: ${order.amount}",
+                amount=order.amount,
+                metadata={
+                    "event_type": "manual_review_required",
+                    "priority": "urgent",
+                    "auto_created": True,
+                    "review_type": "high_value_order",
+                    "requires_manager_approval": order.amount > 10000
+                },
+            )
+            print(f"🔍 Review ticket created: {ticket.id} for order {order.id}")      
+            
     async def create_order(
         self, product_ids: List[str], amount: float, metadata: Dict[str, Any] = None
     ) -> Order:
@@ -88,9 +113,11 @@ class OrderService:
 
         # 3. Aplicar lógica de negocio específica ANTES de cambiar estado
         await self._apply_business_logic(order, event_type, metadata or {})
-
+        
+       
         # 4. Actualizar estado en base de datos
         updated_metadata = order.metadata.copy()
+        
         if metadata:
             updated_metadata.update(metadata)
 
@@ -112,31 +139,6 @@ class OrderService:
         )
 
         return updated_order
-
-    async def _apply_business_logic(
-        self, order: Order, event_type: EventType, metadata: Dict[str, Any]
-    ):
-        """Aplicar reglas de negocio específicas"""
-
-        # REGLA 1: paymentFailed con monto > 1000 USD
-        if event_type == EventType.PAYMENT_FAILED and order.amount > 1000:
-            await self.repository.create_support_ticket(
-                order_id=order.id,
-                reason=f"High amount payment failure: ${order.amount}",
-                amount=order.amount,
-                metadata={
-                    "event_type": event_type.value,
-                    "original_metadata": metadata,
-                    "auto_created": True,
-                },
-            )
-            print(
-                f"🎫 Support ticket created for high-value payment failure: Order {order.id}"
-            )
-
-        # REGLA 2: Aquí se pueden agregar más reglas de negocio fácilmente
-        # if event_type == EventType.DELIVERY_ISSUE:
-        #     await self._handle_delivery_issue(order, metadata)
 
     async def get_order(self, order_id: UUID) -> Order:
         """Obtener orden por ID"""

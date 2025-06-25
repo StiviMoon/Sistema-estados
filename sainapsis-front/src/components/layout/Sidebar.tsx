@@ -284,7 +284,7 @@ export function Sidebar({ initialOrders = [] }: SidebarProps) {
       {isMobile && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed top-4 left-4 z-50 h-10 w-10 p-0 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center md:hidden"
+          className="fixed top-4 right-5 z-30 h-10 w-10 p-0 bg-white border border-gray-200 shadow-sm rounded-md flex items-center justify-center md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>

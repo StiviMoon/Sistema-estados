@@ -12,6 +12,7 @@ class OrderState(str, Enum):
     ON_HOLD = "on_hold"
     PENDING_PAYMENT = "pending_payment"
     CONFIRMED = "confirmed"
+    REVIEWING = "reviewing" 
     PROCESSING = "processing"
     SHIPPED = "shipped"
     DELIVERED = "delivered"
@@ -37,6 +38,10 @@ class EventType(str, Enum):
     RETURN_INITIATED_BY_CUSTOMER = "returnInitiatedByCustomer"
     ITEM_RECEIVED_BACK = "itemReceivedBack"
     REFUND_PROCESSED = "refundProcessed"
+    MANUAL_REVIEW_REQUIRED = "manualReviewRequired"  
+    REVIEW_APPROVED = "reviewApproved"  
+    REVIEW_REJECTED = "reviewRejected"  
+
 
 
 @dataclass
