@@ -2,7 +2,6 @@
 
 """
 Motor de reglas de negocio que coordina la evaluación y ejecución.
-CREAR ESTE ARCHIVO NUEVO - NO MODIFICAR ARCHIVOS EXISTENTES
 """
 
 from typing import List, Dict, Any, Optional

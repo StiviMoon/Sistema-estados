@@ -2,7 +2,6 @@
 
 """
 Clases base para el sistema de reglas de negocio de Sainapsis.
-CREAR ESTE ARCHIVO NUEVO - NO MODIFICAR ARCHIVOS EXISTENTES
 """
 
 from abc import ABC, abstractmethod

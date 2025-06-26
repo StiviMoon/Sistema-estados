@@ -1,11 +1,5 @@
 # app/business_rules/__init__.py
 
-"""
-Inicializador automático del sistema de reglas de negocio para Sainapsis.
-CREAR ESTE ARCHIVO NUEVO - NO MODIFICAR ARCHIVOS EXISTENTES
-
-Este archivo se ejecuta automáticamente al importar el módulo business_rules
-"""
 
 from app.business_rules.engine import business_rule_registry, business_rule_evaluator
 from app.business_rules.adapters.order_adapter import sainapsis_order_adapter

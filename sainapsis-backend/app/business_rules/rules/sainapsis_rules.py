@@ -2,7 +2,6 @@
 
 """
 Reglas de negocio específicas para el sistema Sainapsis.
-CREAR ESTE ARCHIVO NUEVO - NO MODIFICAR ARCHIVOS EXISTENTES
 """
 
 from typing import List

@@ -2,7 +2,6 @@
 
 """
 Adaptador que integra el motor de reglas de negocio con tu OrderService existente.
-CREAR ESTE ARCHIVO NUEVO - NO MODIFICAR ARCHIVOS EXISTENTES
 """
 
 from typing import List, Dict, Any, Optional
