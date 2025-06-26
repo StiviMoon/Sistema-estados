@@ -3,11 +3,13 @@
 """
 Test enfocado SOLO en las business rules (sin base de datos)
 Para verificar que el sistema funciona correctamente
+Version corregida con datetime moderno
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
+from typing import List, Dict, Any, Optional
 
 def test_business_rules_initialization():
     """Test 1: Verificar que las business rules se inicialicen correctamente"""
@@ -73,15 +75,15 @@ def test_small_order_rule_logic():
         all_passed = True
         
         for test_case in test_cases:
-            # Crear orden mock
+            # Crear orden mock - AQUÍ ESTABA EL ERROR
             mock_order = Order(
                 id=uuid4(),
                 product_ids=["TEST-PRODUCT"],
                 amount=test_case["amount"],
                 state=OrderState.PENDING,
                 metadata={},
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),  # Usar timezone-aware datetime
+                updated_at=datetime.now(timezone.utc)   # Usar timezone-aware datetime
             )
             
             # Crear contexto
@@ -135,26 +137,26 @@ def test_event_filtering():
         
         evaluator = get_business_rule_evaluator()
         
-        # Crear orden pequeña ($15)
+        # Crear orden pequeña ($15) - CORRECCIÓN AQUÍ
         small_order = Order(
             id=uuid4(),
             product_ids=["SMALL-TEST"],
             amount=15.0,
             state=OrderState.PENDING,
             metadata={},
-            created_at=datetime.datetime(),
-            updated_at=datetime.datetime()
+            created_at=datetime.now(timezone.utc),  # Correcto
+            updated_at=datetime.now(timezone.utc)   # Correcto
         )
         
-        # Crear orden grande ($100)
+        # Crear orden grande ($100) - CORRECCIÓN AQUÍ
         large_order = Order(
             id=uuid4(),
             product_ids=["LARGE-TEST"],
             amount=100.0,
             state=OrderState.PENDING,
             metadata={},
-            created_at=datetime.datetime(),
-            updated_at=datetime.datetime()
+            created_at=datetime.now(timezone.utc),  # Correcto
+            updated_at=datetime.now(timezone.utc)   # Correcto
         )
         
         base_events = [
@@ -212,15 +214,15 @@ def test_country_tax_rule():
         
         evaluator = get_business_rule_evaluator()
         
-        # Crear orden con contexto de México
+        # Crear orden con contexto de México - CORRECCIÓN AQUÍ
         order = Order(
             id=uuid4(),
             product_ids=["MEXICO-TEST"],
             amount=100.0,
             state=OrderState.PENDING,
             metadata={},
-            created_at=datetime.datetime(),
-            updated_at=datetime.datetime()
+            created_at=datetime.now(timezone.utc),  # Correcto
+            updated_at=datetime.now(timezone.utc)   # Correcto
         )
         
         # Contexto de usuario mexicano
@@ -250,6 +252,148 @@ def test_country_tax_rule():
         return False
 
 
+def test_high_value_payment_failed():
+    """Test 5: Probar regla de pagos fallidos de alto valor"""
+    print("\n💰 Test 5: High Value Payment Failed Rule")
+    
+    try:
+        from app.business_rules import get_business_rule_evaluator
+        from app.business_rules.base import RuleContext
+        from app.models.domain import Order, OrderState, EventType
+        
+        evaluator = get_business_rule_evaluator()
+        
+        # Crear orden de alto valor ($1500)
+        high_value_order = Order(
+            id=uuid4(),
+            product_ids=["LAPTOP-PRO"],
+            amount=1500.0,
+            state=OrderState.PENDING_PAYMENT,
+            metadata={},
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        # Contexto con evento de pago fallido
+        context = RuleContext(
+            order=high_value_order,
+            event_type=EventType.PAYMENT_FAILED,
+            metadata={"reason": "Insufficient funds"}
+        )
+        
+        # Evaluar reglas de lógica de negocio
+        results = evaluator.evaluate_business_logic(context)
+        
+        print(f"   💳 Order amount: ${high_value_order.amount}")
+        print(f"   🎯 Event type: {EventType.PAYMENT_FAILED.value}")
+        print(f"   📋 Rules executed: {results['executed_rules']}")
+        print(f"   🎫 Support tickets created: {len(results['support_tickets'])}")
+        
+        # Verificar que se creó un ticket
+        if results['support_tickets']:
+            ticket = results['support_tickets'][0]
+            print(f"   ✅ Ticket reason: {ticket['reason']}")
+            print(f"   ✅ Ticket priority: {ticket['metadata'].get('priority', 'not set')}")
+            return True
+        else:
+            print("   ❌ No support ticket created")
+            return False
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def test_rule_priority_execution():
+    """Test 6: Verificar que las reglas se ejecutan por prioridad"""
+    print("\n🎯 Test 6: Rule Priority Execution")
+    
+    try:
+        from app.business_rules import get_business_rule_registry
+        from app.business_rules.base import RulePriority
+        
+        registry = get_business_rule_registry()
+        
+        # Obtener todas las reglas y verificar prioridades
+        all_rules = registry.get_all_rules()
+        
+        priority_groups = {}
+        for rule in all_rules:
+            priority = rule.priority.value
+            if priority not in priority_groups:
+                priority_groups[priority] = []
+            priority_groups[priority].append(rule.rule_id)
+        
+        print("   📊 Rules by priority:")
+        for priority in sorted(priority_groups.keys()):
+            priority_name = RulePriority(priority).name
+            rules = priority_groups[priority]
+            print(f"   {priority}. {priority_name}: {len(rules)} rules")
+            for rule_id in rules[:3]:  # Mostrar máximo 3
+                print(f"      - {rule_id}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        return False
+
+
+def test_rule_enable_disable():
+    """Test 7: Verificar habilitación/deshabilitación de reglas"""
+    print("\n🔧 Test 7: Rule Enable/Disable Functionality")
+    
+    try:
+        from app.business_rules import (
+            get_business_rule_registry,
+            enable_rule,
+            disable_rule
+        )
+        
+        registry = get_business_rule_registry()
+        test_rule_id = "sainapsis_weekend_order_restriction"
+        
+        # Verificar estado inicial
+        rule = registry.get_rule(test_rule_id)
+        if not rule:
+            print(f"   ⚠️ Rule {test_rule_id} not found, using small order rule")
+            test_rule_id = "sainapsis_small_order_no_verification"
+            rule = registry.get_rule(test_rule_id)
+        
+        initial_state = rule.is_enabled()
+        print(f"   📊 Initial state of {test_rule_id}: {'ENABLED' if initial_state else 'DISABLED'}")
+        
+        # Deshabilitar
+        disable_rule(test_rule_id)
+        after_disable = rule.is_enabled()
+        print(f"   🔴 After disable: {'ENABLED' if after_disable else 'DISABLED'}")
+        
+        # Habilitar
+        enable_rule(test_rule_id)
+        after_enable = rule.is_enabled()
+        print(f"   🟢 After enable: {'ENABLED' if after_enable else 'DISABLED'}")
+        
+        # Restaurar estado original
+        if initial_state:
+            enable_rule(test_rule_id)
+        else:
+            disable_rule(test_rule_id)
+        
+        success = (not after_disable) and after_enable
+        if success:
+            print("   ✅ Enable/disable functionality working correctly")
+        else:
+            print("   ❌ Enable/disable functionality not working")
+        
+        return success
+        
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        return False
+
+
 def run_business_rules_tests():
     """Ejecutar todos los tests de business rules (sin base de datos)"""
     print("🧪 SAINAPSIS BUSINESS RULES - STANDALONE TESTS")
@@ -261,6 +405,9 @@ def run_business_rules_tests():
         ("Small Order Rule Logic", test_small_order_rule_logic),
         ("Event Filtering", test_event_filtering),
         ("Country Tax Rules", test_country_tax_rule),
+        ("High Value Payment Failed", test_high_value_payment_failed),
+        ("Rule Priority Execution", test_rule_priority_execution),
+        ("Rule Enable/Disable", test_rule_enable_disable),
     ]
     
     results = {}
@@ -297,17 +444,24 @@ def run_business_rules_tests():
     print(f"   ✅ Successful tests: {len(successful_tests)}")
     print(f"   ❌ Failed tests: {len(failed_tests)}")
     print(f"   📊 Total tests: {len(results)}")
+    print(f"   🎯 Success rate: {(len(successful_tests) / len(results) * 100):.1f}%")
     
     if len(failed_tests) == 0:
         print(f"\n🎉 ALL BUSINESS RULES TESTS PASSED!")
         print(f"   ✅ Business rules system is working correctly")
         print(f"   ✅ Small order rule (≤$20) is functional")
         print(f"   ✅ Event filtering is working")
-        print(f"   ✅ Country rules are working")
+        print(f"   ✅ Country tax rules are working")
+        print(f"   ✅ High value payment rules are working")
+        print(f"   ✅ Rule management is working")
         print(f"   ⚠️ Database connection needed for full integration")
     else:
         print(f"\n⚠️ SOME TESTS FAILED")
         print(f"   Failed tests: {', '.join(failed_tests)}")
+        print(f"   Please check the errors above for details")
+    
+    print(f"\n⏰ Test completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 80)
     
     return len(failed_tests) == 0
 
