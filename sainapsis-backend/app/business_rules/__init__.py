@@ -12,7 +12,8 @@ from app.business_rules.rules.sainapsis_rules import (
     SainapsisCountryTaxRule,
     SainapsisHighRiskCountryRule,
     SainapsisReviewingStateRule,
-    SainapsisWeekendOrderRule
+    SainapsisWeekendOrderRule,
+    SainapsisWeekendOrderEnrichmentRule
 )
 
 
@@ -43,6 +44,11 @@ def initialize_sainapsis_business_rules():
     # REGLAS DE INTEGRACIÓN CON SISTEMA EXISTENTE
     # ========================================================================
     business_rule_registry.register(SainapsisReviewingStateRule())
+    
+    # ========================================================================
+    # REGLAS DE FIN DE SEMANA
+    # ========================================================================
+    business_rule_registry.register(SainapsisWeekendOrderEnrichmentRule(weekend_threshold=500.0))
     
     # ========================================================================
     # REGLAS OPCIONALES (deshabilitadas por defecto)

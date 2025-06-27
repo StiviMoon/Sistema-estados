@@ -326,3 +326,47 @@ class SainapsisWeekendOrderRule(EventFilterRule):
     def filter_events(self, available_events: List[EventType], context: RuleContext) -> List[EventType]:
         # Solo permitir cancelación los fines de semana para órdenes grandes
         return [EventType.ORDER_CANCELLED_BY_USER]
+    
+    
+    
+# ========================================================================
+# REGLAS DE FIN DE SEMANA (enriquecimiento de órdenes grandes)
+# ========================================================================
+class SainapsisWeekendOrderEnrichmentRule(EnrichmentRule):
+    """
+    Enriquecimiento para órdenes grandes en fines de semana
+    """
+    
+    def __init__(self, weekend_threshold: float = 500.0):
+        super().__init__(
+            rule_id="sainapsis_weekend_order_enrichment", 
+            description=f"Enrich large weekend orders with additional metadata",
+            priority=RulePriority.LOW
+        )
+        self.weekend_threshold = weekend_threshold
+    
+    def applies_to(self, context: RuleContext) -> bool:
+        from datetime import datetime
+        now = datetime.utcnow()
+        is_weekend = now.weekday() >= 5  # Sábado=5, Domingo=6
+        
+        return (
+            is_weekend and 
+            context.order.amount > self.weekend_threshold and 
+            context.order.state == OrderState.PENDING
+        )
+    
+    def execute(self, context: RuleContext) -> RuleResult:
+        metadata_updates = {
+            "weekend_order": True,
+            "weekend_threshold": self.weekend_threshold,
+            "enrichment_rule_id": self.rule_id
+        }
+        
+        return RuleResult(
+            success=True,
+            actions=["Enriched weekend order with additional metadata"],
+            metadata_updates=metadata_updates
+        )
+        
+    
